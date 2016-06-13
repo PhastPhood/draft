@@ -1,0 +1,16 @@
+/**
+ * ...
+ * @author Jeffrey Gao
+ */
+
+package draft.utils;
+
+class DrawStyles 
+{
+
+	public function new() 
+	{
+		
+	}
+	
+}

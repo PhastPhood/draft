@@ -1,0 +1,178 @@
+/**
+ * ...
+ * @author Jeffrey Gao
+ */
+
+package draft.physics;
+import draft.physics.collisions.shapes.CollisionShape;
+import draft.physics.dynamics.contacts.Contact;
+import draft.physics.dynamics.contacts.ContactManager;
+import draft.physics.dynamics.contacts.ContactNode;
+import draft.physics.dynamics.forces.ForceGenerator;
+import draft.physics.dynamics.forces.ForceGeneratorNode;
+import draft.physics.dynamics.Island;
+import draft.physics.dynamics.RigidBody;
+import draft.physics.dynamics.RigidBodyDefinition;
+
+class PhysicsEngine 
+{
+	public var bodyList:RigidBody;
+	public var bodyCount:Int;
+	public var bodyArray:Array<RigidBody>;
+	
+	public var contactList:Contact;
+	public var contactCount:Int;
+	
+	public var contactManager:ContactManager;
+	public var island:Island;
+	
+	public var forceList:ForceGeneratorNode;
+	
+	public var shapeArray:Array<CollisionShape>;
+	public function new() 
+	{
+		contactManager = new ContactManager(this);
+		
+		bodyArray = new Array<RigidBody>();
+		shapeArray = new Array<CollisionShape>();
+		island = new Island();
+	}
+	
+	public function addBody(bodyData:RigidBodyDefinition):RigidBody
+	{
+		var body:RigidBody = new RigidBody(bodyData, this);
+		var shape1:CollisionShape = body.shapeList;
+		for (i in 0...body.shapeCount)
+		{
+			for (shape2 in shapeArray)
+			{
+				contactManager.pairAdded(shape1, shape2);
+			}
+			shape1 = shape1.next;
+		}
+		
+		shape1 = body.shapeList;
+		for (i in 0...body.shapeCount)
+		{
+			shapeArray.push(shape1);
+			shape1 = shape1.next;
+		}
+		
+		bodyArray.push(body);
+		
+		if (bodyList == null)
+		{
+			bodyList = body;
+			bodyList.prev = bodyList;
+			bodyList.next = bodyList;
+		}
+		body.prev = bodyList.prev;
+		body.next = bodyList;
+		
+		bodyCount++;
+		
+		return body;
+	}
+	
+	public function step(dt:Float, iterations:Int):Void
+	{
+		contactManager.collide();
+		
+		var body:RigidBody;
+		var contact:Contact = contactList;
+		
+		for (i in 0...contactCount) {
+			contact.islandFlag = false;
+			contact = contact.next;
+		}
+		
+		var stackSize:Int = 0;
+		var stack:Array<RigidBody> = new Array<RigidBody>();
+		
+		var other:RigidBody;
+		var contactNode:ContactNode;
+		
+		for (seed in bodyArray) {
+			if (seed.isStatic)
+				continue;
+			if(seed.islandFlag)
+				continue;
+			if(seed.isSleeping)
+				continue;
+			island.reset();
+			stack[0] = seed;
+			stackSize = 1;
+			seed.islandFlag = true;
+			while (stackSize > 0) {
+				stackSize--;
+				body = stack[stackSize];
+				island.bodyArray[island.bodyCount] = body;
+				island.bodyCount++;
+				body.wakeUp();
+				if (body.isStatic)
+					continue;
+					
+				contactNode = body.contactList;
+				while (contactNode != null)
+				{
+					if (contactNode.contact.islandFlag)
+					{
+						contactNode = contactNode.next;
+						continue;
+					}
+					if (contactNode.contact.manifoldCount == 0)
+					{
+						contactNode = contactNode.next;
+						continue;
+					}
+					island.contactArray[island.contactCount] = contactNode.contact;
+					island.contactCount++;
+					contactNode.contact.islandFlag = true;
+					
+					other = contactNode.other;
+					if (other.islandFlag)
+					{
+						contactNode = contactNode.next;
+						continue;
+					}
+					stack[stackSize] = other;
+					stackSize++;
+					other.islandFlag = true;
+					contactNode = contactNode.next;
+				}
+			}
+			island.solve(dt, iterations);
+			
+			for (body in island.bodyArray)
+			{
+				if (body.isStatic)
+					body.islandFlag = false;
+			}
+		}
+		
+		for (body in bodyArray) {
+			if (body.isStatic)
+				continue;
+			body.synchronizeShapes();
+			body.islandFlag = false;
+		}
+		
+
+	}
+	
+	
+	public function addWorldForce(force:ForceGenerator):Void
+	{
+		force.bodyArray = bodyArray;
+		force.updateForce();
+		var fN:ForceGeneratorNode = new ForceGeneratorNode(force);
+		if (forceList == null)
+		{
+			forceList = fN;
+			return;
+		}
+		forceList.prev = fN;
+		fN.next = forceList;
+		forceList = fN;
+	}
+}

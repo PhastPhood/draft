@@ -1,0 +1,25 @@
+END
+ShapeDefinition.hx
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/flash/!svn/ver/7/trunk/HaXe%20Physics/src/draft/physics/collisions/shapes/definitions/ShapeDefinition.hx
+END
+CircleDefinition.hx
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/svn/flash/!svn/ver/7/trunk/HaXe%20Physics/src/draft/physics/collisions/shapes/definitions/CircleDefinition.hx
+END
+RectangleDefinition.hx
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svn/flash/!svn/ver/7/trunk/HaXe%20Physics/src/draft/physics/collisions/shapes/definitions/RectangleDefinition.hx
+END
+PolygonDefinition.hx
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svn/flash/!svn/ver/7/trunk/HaXe%20Physics/src/draft/physics/collisions/shapes/definitions/PolygonDefinition.hx
+END

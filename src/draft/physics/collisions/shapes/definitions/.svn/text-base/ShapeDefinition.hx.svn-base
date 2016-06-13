@@ -1,0 +1,58 @@
+/**
+ * ...
+ * @author Jeffrey Gao
+ */
+
+package draft.physics.collisions.shapes.definitions;
+import draft.math.Vector2D;
+import draft.physics.collisions.shapes.CollisionShape;
+import draft.physics.dynamics.Material;
+
+class ShapeDefinition 
+{
+	private static inline var DEFAULT_MATERIAL:Material = new Material(1, 0, 0);
+	
+	public var localPosition:Vector2D;
+	
+	public var density:Float;
+	public var area:Float;
+	public var mass:Float;
+	
+	public var I:Float;
+	public var centerOfMass:Vector2D;
+	
+	public var shapeType:Int;
+	
+	public var friction:Float;
+	public var restitution:Float;
+	
+	public var next:ShapeDefinition;
+	public var prev:ShapeDefinition;
+	
+	public function new(?material:Material) 
+	{
+		if (material == null)
+		{
+			material = DEFAULT_MATERIAL;
+		}
+		density = material.density;
+		friction = material.friction;
+		restitution = material.restitution;
+		
+		localPosition = new Vector2D();
+		centerOfMass = new Vector2D();
+		
+		shapeType = CollisionShape.NO_TYPE;
+	}
+
+	public function clone():ShapeDefinition
+	{
+		return null;
+	}
+	
+	public function calculateMassInformation():Void
+	{
+		
+	}
+	
+}

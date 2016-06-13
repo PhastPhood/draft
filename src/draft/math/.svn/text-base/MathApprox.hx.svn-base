@@ -1,0 +1,45 @@
+/**
+ * ...
+ * @author Jeffrey Gao
+ */
+
+package draft.math;
+
+class MathApprox
+{
+
+	public static inline var PI:Float = Math.PI;
+	public static inline var PI2:Float = 2 * PI;
+	public static inline var PI1_2:Float = PI * 0.5;
+	
+	public static inline function sin(x:Float):Float
+	{	
+		if (x > PI)
+			x -= PI2 * Std.int(x / PI2 + 0.5);
+		else if (x < PI)
+			x -= PI2 * Std.int(x / PI2 - 0.5);
+			
+		var sin:Float = 1.27323954 * x;
+		sin += x < 0 ? 0.405284735 * x * x : -0.405284735 * x * x;
+		sin = sin < 0 ? .225 * (sin * -sin - sin) + sin : .225 * (sin * sin -sin) + sin;
+		return sin;
+	}
+	
+	public static inline function cos(x:Float):Float
+	{
+		x += PI1_2;
+		return sin(x);
+	}
+	
+	public static inline function invSqrt(x:Float):Float
+	{
+		var half:Float = 0.5 * x;
+		flash.Memory.setFloat(0, x);
+		var i:Int = flash.Memory.getI32(0);
+		i = 0x5f3759df - (i >> 1);
+		flash.Memory.setI32(0, i);
+		x = flash.Memory.getFloat(0);
+		x = x * (1.5 - half * x * x);
+		return x;
+	}
+}

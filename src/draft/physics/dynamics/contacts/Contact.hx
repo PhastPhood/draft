@@ -1,0 +1,292 @@
+/**
+ * ...
+ * @author Jeffrey Gao
+ */
+
+package draft.physics.dynamics.contacts;
+import draft.physics.collisions.CollisionData;
+import draft.physics.collisions.sat.SATCircleCircle;
+import draft.physics.collisions.sat.SATCirclePolygon;
+import draft.physics.collisions.sat.SATCircleRectangle;
+import draft.physics.collisions.sat.SATPolygonPolygon;
+import draft.physics.collisions.sat.SATRectanglePolygon;
+import draft.physics.collisions.sat.SATRectangleRectangle;
+import draft.physics.collisions.shapes.CollisionShape;
+import draft.physics.dynamics.RigidBody;
+import draft.physics.PhysicsEvent;
+
+class Contact 
+{
+	public static var CIRCLE_POLYGON_COLLISION_HANDLER:SATCirclePolygon = new SATCirclePolygon();
+	public static var CIRCLE_CIRCLE_COLLISION_HANDLER:SATCircleCircle = new SATCircleCircle();
+	public static var CIRCLE_RECTANGLE_COLLISION_HANDLER:SATCircleRectangle = new SATCircleRectangle();
+	public static var RECTANGLE_RECTANGLE_COLLISION_HANDLER:SATRectangleRectangle = new SATRectangleRectangle();
+	public static var RECTANGLE_POLYGON_COLLISION_HANDLER:SATRectanglePolygon = new SATRectanglePolygon();
+	public static var POLYGON_POLYGON_COLLISION_HANDLER:SATPolygonPolygon = new SATPolygonPolygon();
+
+	public var prevAxis:Int;
+	public var prevShape:Int;
+	
+	public var next:Contact;
+	public var prev:Contact;
+	
+	public var poolNext:Contact;
+	public var poolPrev:Contact;
+	
+	public var friction:Float;
+	public var restitution:Float;
+	
+	public var node1:ContactNode;
+	public var node2:ContactNode;
+	
+	public var shape1:CollisionShape;
+	public var shape2:CollisionShape;
+	
+	public var manifoldCount:Int;
+	public var manifoldArray:Array<Manifold>;
+	public var manifold:Manifold;
+	
+	private var _collide:Dynamic -> Dynamic -> Contact->Void;
+	
+	public var islandFlag:Bool;
+	
+	public function new(shape1:CollisionShape, shape2:CollisionShape) 
+	{
+		
+		node1 = new ContactNode();
+		node2 = new ContactNode();
+		
+		manifoldCount = 0;
+		
+		manifoldArray = new Array<Manifold>();
+		manifold = new Manifold();
+		
+		if (shape1 == null)
+			return;
+			
+		if (shape2 == null)
+			return;
+		
+		
+		init(shape1, shape2);
+	}
+	
+	public function init(s1:CollisionShape, s2:CollisionShape):Void
+	{
+		if (s1 == null && s2 == null)
+			return;
+		
+		shape1 = s1;
+		shape2 = s2;
+		
+		var max:Float;
+		var min:Float;
+		
+		if (s1.friction > s2.friction)
+		{
+			max = s1.friction;
+			min = s2.friction;
+		}else 
+		{
+			max = s2.friction;
+			min = s1.friction;
+		}
+		
+		friction = (max + max + min) * 0.33333333;
+		
+		if (s1.restitution > s2.restitution)
+		{
+			max = s1.restitution;
+			min = s2.restitution;
+		}else
+		{
+			max = s2.restitution;
+			min = s1.restitution;
+		}
+		
+		restitution = (max + max + min) * 0.33333333;
+		
+		manifold = new Manifold();
+		manifoldArray[0] = manifold;
+		
+		manifold.body1 = s1.body;
+		manifold.body2 = s2.body;
+		
+		var cp:ContactPoint = manifold.pointArray[0];
+		
+		cp.shape1 = s1;
+		cp.shape2 = s2;
+		
+		cp.friction = friction;
+		cp.restitution = restitution;
+		
+		cp = manifold.pointArray[1];
+		if (s1.shapeType != 1)
+		{
+			cp.shape1 = s1;
+			cp.shape2 = s2;
+			cp.friction = friction;
+			cp.restitution = restitution;
+		}else
+		{
+			cp.shape1 = null;
+			cp.shape2 = null;
+		}
+		
+		
+		switch (s1.shapeType)
+		{
+			case 1:
+				switch(s2.shapeType)
+				{
+					case 1:
+						_collide = CIRCLE_CIRCLE_COLLISION_HANDLER.collide;
+					case 2:
+						_collide = CIRCLE_RECTANGLE_COLLISION_HANDLER.collide;
+					case 3:
+						_collide = CIRCLE_POLYGON_COLLISION_HANDLER.collide;
+				}
+			case 2:
+				switch(s2.shapeType)
+				{
+					case 1:
+						_collide = CIRCLE_RECTANGLE_COLLISION_HANDLER.collide;
+					case 2:
+						_collide = RECTANGLE_RECTANGLE_COLLISION_HANDLER.collide;
+					case 3:
+						_collide = RECTANGLE_POLYGON_COLLISION_HANDLER.collide;
+				}
+			case 3:
+				switch(s2.shapeType)
+				{
+					case 1:
+						_collide = CIRCLE_POLYGON_COLLISION_HANDLER.collide;
+					case 2:
+						_collide = RECTANGLE_POLYGON_COLLISION_HANDLER.collide;
+					case 3:
+						_collide = POLYGON_POLYGON_COLLISION_HANDLER.collide;
+				}
+		}
+		
+	}
+	
+	public function update():Void
+	{
+		var oldCount:Int = manifoldCount;
+		evaluate();
+		
+		if (manifoldCount == 0)
+		{
+			if (oldCount > 0)
+			{
+				var body1:RigidBody = shape1.body;
+				var body2:RigidBody = shape2.body;
+				body1.wakeUp();
+				body2.wakeUp();
+				
+			}
+		}
+	}
+	
+	public function evaluate():Void
+	{
+		var m:Manifold = manifold;
+		var mOldCount:Int = manifold.pointCount;
+		var oldImpulses:Array<Float> = new Array<Float>();
+		var oldKeys:Array<UInt> = new Array<UInt>();
+		var cp:ContactPoint;
+		
+		for (i in 0...mOldCount)
+		{
+			cp = m.pointArray[i];
+			oldImpulses[i * 2] = cp.normalImpulse;
+			oldImpulses[i * 2 + 1] = cp.tangentImpulse;
+			oldKeys[i] = cp.id.key;
+		}
+		
+		_collide(shape1, shape2, this);
+		
+		var mNewCount:Int = manifold.pointCount;
+		var persisted:Array<Bool> = new Array<Bool>();
+		
+		persisted[0] = false;
+		persisted[1] = false;
+		
+		var key1:UInt;
+		
+		if (mNewCount > 0)
+		{
+			var j:Int;
+			for (i in 0...mNewCount)
+			{
+				cp = manifold.pointArray[i];
+				
+				cp.normalImpulse = 0;
+				cp.tangentImpulse = 0;
+				
+				key1 = cp.id.key;
+				
+				for (j in 0...mOldCount)
+				{
+					if (persisted[j])
+						continue;
+						
+					if (oldKeys[j] == key1)
+					{
+						persisted[j] = true;
+						
+						cp.normalImpulse = oldImpulses[j * 2];
+						cp.tangentImpulse = oldImpulses[j * 2 + 1];
+						
+						break;
+					}
+				}
+			}
+			if (shape1.enableNotifications)
+			{
+				var data1:CollisionData = shape1.notifier.collisionData;
+				data1.shape1 = shape1;
+				data1.shape2 = shape2;
+				data1.manifold = manifold;
+				data1.stepIndex = shape1.body.world.stepIndex;
+				shape1.notifier.notify(PhysicsEvent.COLLIDE, data1);
+			}
+			if (shape2.enableNotifications)
+			{
+				var data2:CollisionData = shape2.notifier.collisionData;
+				data2.shape1 = shape2;
+				data2.shape2 = shape1;
+				data2.manifold = manifold;
+				data2.stepIndex = shape1.body.world.stepIndex;
+				shape2.notifier.notify(PhysicsEvent.COLLIDE, data2);
+			}
+			
+			manifoldCount = 1;
+			if (shape1.resolutionGroup == shape2.resolutionGroup && shape1.resolutionGroup != 0)
+			{
+				if (shape1.collisionGroup < 0)
+				{
+					manifoldCount = 0;
+				}
+			}else if ((shape1.resolutionMask & shape2.resolutionCategory == 0) || (shape2.resolutionMask & shape1.resolutionCategory == 0))
+			{
+				manifoldCount = 0;
+			}else
+			{
+				manifoldCount = 1;
+				
+			}
+		}
+		else
+		{
+			manifoldCount = 0;
+		}
+		
+	}
+	
+	public function destroy():Void
+	{
+		
+	}
+	
+}

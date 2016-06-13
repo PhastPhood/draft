@@ -1,0 +1,25 @@
+END
+CircleShape.hx
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/flash/!svn/ver/7/trunk/HaXe%20Physics/src/draft/physics/collisions/shapes/CircleShape.hx
+END
+RectangleShape.hx
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/flash/!svn/ver/7/trunk/HaXe%20Physics/src/draft/physics/collisions/shapes/RectangleShape.hx
+END
+PolygonShape.hx
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svn/flash/!svn/ver/7/trunk/HaXe%20Physics/src/draft/physics/collisions/shapes/PolygonShape.hx
+END
+CollisionShape.hx
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/flash/!svn/ver/7/trunk/HaXe%20Physics/src/draft/physics/collisions/shapes/CollisionShape.hx
+END

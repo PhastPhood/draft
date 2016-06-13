@@ -1,0 +1,167 @@
+/**
+ * ...
+ * @author Jeffrey Gao
+ */
+
+package draft.physics.collisions.shapes;
+import draft.math.RotationMatrix2D;
+import draft.math.Vector2D;
+import draft.physics.collisions.shapes.definitions.RectangleDefinition;
+import draft.physics.dynamics.RigidBody;
+
+class RectangleShape extends CollisionShape
+{
+	
+	public var localOrientation:RotationMatrix2D;
+	public var orientation:RotationMatrix2D;
+	
+	public var halfWidth:Float;
+	public var halfHeight:Float;
+	
+	public var halfWidthVector:Vector2D;
+	public var halfHeightVector:Vector2D;
+	
+	public var worldVertexArray:Array<Vector2D>;
+	public var worldVertexList:Vector2D;
+	
+	public function new(rectangleData:RectangleDefinition, body:RigidBody) 
+	{
+		super(rectangleData, body);
+		shapeType = CollisionShape.RECTANGLE_TYPE;
+		
+		halfWidth = rectangleData.width * 0.5;
+		halfHeight = rectangleData.height * 0.5;
+		
+		localOrientation = new RotationMatrix2D(rectangleData.localRotation);
+		orientation = new RotationMatrix2D();
+		halfWidthVector = new Vector2D(orientation.i1j1 * halfWidth, orientation.i2j1 * halfWidth);
+		halfHeightVector = new Vector2D(orientation.i1j2 * halfHeight, orientation.i2j2 * halfHeight);
+		
+		worldVertexArray = new Array<Vector2D>();
+		
+		worldVertexArray[0] = new Vector2D();
+		worldVertexArray[1] = new Vector2D();
+		worldVertexArray[2] = new Vector2D();
+		worldVertexArray[3] = new Vector2D();
+		
+		var v:Vector2D;
+		var i2:Int;
+		for (i in 0...4) {
+			v = worldVertexArray[i];
+			i2 = i + 1;
+			if (i2 == 4)
+				i2 = 0;
+			v.next = worldVertexArray[i2];
+			i2 = i - 1;
+			if (i2 == -1)
+				i2 = 3;
+			v.prev = worldVertexArray[i2];
+		}
+		worldVertexList = worldVertexArray[0];
+		
+		update();
+	}
+	
+	override public function update():Void
+	{
+		orientation.angle = (localOrientation.angle + body.getRotation()) % 6.283185307179586;
+		
+		orientation.i1j1 = localOrientation.i1j1 * body.orientation.i1j1 + localOrientation.i1j2 * body.orientation.i2j1;
+		orientation.i1j2 = localOrientation.i1j1 * body.orientation.i1j2 + localOrientation.i1j2 * body.orientation.i2j2;
+		orientation.i2j1 = localOrientation.i2j1 * body.orientation.i1j1 + localOrientation.i2j2 * body.orientation.i2j1;
+		orientation.i2j2 = localOrientation.i2j1 * body.orientation.i1j2 + localOrientation.i2j2 * body.orientation.i2j2;
+		
+
+		var lx:Float = localPosition.x - body.localCenterOfMass.x;
+		var ly:Float = localPosition.y - body.localCenterOfMass.y;
+		
+		position.x = body.worldCenterOfMass.x + body.orientation.i1j1 * lx + body.orientation.i1j2 * ly;
+		position.y = body.worldCenterOfMass.y + body.orientation.i2j1 * lx + body.orientation.i2j2 * ly;
+		
+		halfWidthVector.x = orientation.i1j1 * halfWidth;
+		halfWidthVector.y = orientation.i2j1 * halfWidth;
+		
+		halfHeightVector.x = orientation.i1j2 * halfHeight;
+		halfHeightVector.y = orientation.i2j2 * halfHeight;
+		
+		var v:Vector2D = worldVertexList;
+		v.x = halfWidthVector.x + halfHeightVector.x + position.x;
+		v.y = halfWidthVector.y + halfHeightVector.y + position.y;
+		v = v.next;
+		v.x = halfWidthVector.x - halfHeightVector.x + position.x;
+		v.y = halfWidthVector.y - halfHeightVector.y + position.y;
+		v = v.next;
+		v.x = -halfWidthVector.x - halfHeightVector.x + position.x;
+		v.y = -halfWidthVector.y - halfHeightVector.y + position.y;
+		v = v.next;
+		v.x = -halfWidthVector.x + halfHeightVector.x + position.x;
+		v.y = -halfWidthVector.y + halfHeightVector.y + position.y;
+		
+		updateAABB();
+	}
+	
+	override public function updateAABB():Void
+	{
+		AABB.min.x = position.x;
+		AABB.max.x = position.x;
+		AABB.min.y = position.y;
+		AABB.min.y = position.y;
+		
+		var e:Float = orientation.i1j1 * -halfWidth;
+		var f:Float = orientation.i1j1 * halfWidth;
+		
+		if (e < f) 
+		{
+			AABB.min.x += e;
+			AABB.max.x += f;
+		}
+		else 
+		{
+			AABB.min.x += f;
+			AABB.max.x += e;
+		}
+		
+		e = orientation.i1j2 * -halfHeight;
+		f = orientation.i1j2 * halfHeight;
+		
+		if (e < f) 
+		{
+			AABB.min.x += e;
+			AABB.max.x += f;
+		}
+		else 
+		{
+			AABB.min.x += f;
+			AABB.max.x += e;
+		}
+		
+		e = orientation.i2j1 * -halfWidth;
+		f = orientation.i2j1 * halfWidth;
+		
+		if (e < f) 
+		{
+			AABB.min.y += e;
+			AABB.max.y += f;
+		}
+		else 
+		{
+			AABB.min.y += f;
+			AABB.max.y += e;
+		}
+		
+		e = orientation.i2j2 * -halfHeight;
+		f = orientation.i2j2 * halfHeight;
+		
+		if (e < f) 
+		{
+			AABB.min.y += e;
+			AABB.max.y += f;
+		}
+		else 
+		{
+			AABB.min.y += f;
+			AABB.max.y += e;
+		}
+	}
+	
+}

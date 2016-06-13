@@ -1,0 +1,62 @@
+﻿/**
+ * ...
+ * @author Jeffrey Gao
+ */
+
+package draft.physics.dynamics.contacts;
+import draft.math.Vector2D;
+import draft.physics.collisions.shapes.CollisionShape;
+
+class ContactPoint 
+{
+
+	public var position:Vector2D;
+	
+	public var r1:Vector2D;
+	public var r2:Vector2D;
+	
+	public var normalImpulse:Float;
+	public var tangentImpulse:Float;
+	
+	public var normalMass:Float;
+	public var tangentMass:Float;
+	public var equalizedMass:Float;
+	
+	public var velocityBias:Float;
+	
+	public var relativeVelocity:Float;
+	
+	public var normal:Vector2D;
+	
+	public var separation:Float;
+	public var friction:Float;
+	public var restitution:Float;
+	
+	public var shape1:CollisionShape;
+	public var shape2:CollisionShape;
+	
+	public var id:ContactID;
+	
+	public var localPoint:Vector2D;
+	
+	
+	public function new() 
+	{
+		position = new Vector2D();
+		r1 = new Vector2D();
+		r2 = new Vector2D();
+		
+		normal = new Vector2D();
+		id = new ContactID();
+		
+		localPoint = new Vector2D();
+	}
+	
+	public function reset()
+	{
+		shape1 = null;
+		shape2 = null;
+		
+	}
+	
+}
